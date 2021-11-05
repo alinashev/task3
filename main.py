@@ -1,16 +1,39 @@
-# This is a sample Python script.
+import time
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from Reader import Reader
 
+path = 'res/osmi.json'
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def counting(jsonString, startValue, endValue):
+    number = 0
+    for i in range(startValue, endValue):
+        if jsonString['questions'][i]['id'] != "":
+            number += 1
+    return number
 
+def runExecutor(jsonString, executorClass):
+    executor = executorClass(max_workers=2)
+    startTimeThread = time.time()
+    fututres1 = executor.submit(counting, jsonString = jsonString,
+                                startValue = 0,
+                                endValue = int(len(jsonString['questions'])/2))
+    fututres2 = executor.submit(counting, jsonString = jsonString,
+                                startValue = int(len(jsonString['questions'])/2),
+                                endValue = len(jsonString['questions']))
 
-# Press the green button in the gutter to run the script.
+    result = fututres2.result() + fututres1.result()
+    print("Results: {result}. Ececutor: {executor}. Time:{spentTime}".format(
+        result = result,
+        executor = executorClass.__name__,
+        spentTime = time.time() - startTimeThread
+    ))
+
+def main():
+    reader = Reader()
+    jsonString = reader.openJSONFile(path)
+    runExecutor(jsonString, ThreadPoolExecutor)
+    runExecutor(jsonString, ProcessPoolExecutor)
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    main()
